@@ -2,6 +2,10 @@
 require 'cgi'
 require "open3"
 require 'fileutils' 
+require 'ap' 
+require 'digest/md5'
+  
+
 include Open3
 
 
@@ -28,6 +32,7 @@ class CURL
     
   def initialize(keys={})
     #@debug = true
+    @cache = ( keys[:cache] ? keys[:cache] : false  )
     @cookies_enable = ( keys[:cookies_disable] ? false : true  )
           @user_agent     = AGENT_ALIASES["Google"]#AGENT_ALIASES[AGENT_ALIASES.keys[rand(6)]]
           FileUtils.makedirs("/tmp/curl/")
@@ -51,7 +56,7 @@ class CURL
     def proxy(proxy_uri)
       File.open("/tmp/aaaaaaaa.aaa","w"){|file| file.puts "#{Time.now}---"+proxy_uri}
     	proxy = ( proxy_uri.is_a?(URI) ? proxy_uri : URI.parse("http://#{proxy_uri}") )
-    	@setup_params = "#{@setup_params} --proxy \"#{proxy.host}:#{proxy.port}\" "
+      @setup_params = "#{@setup_params} --proxy \"#{proxy.host}:#{proxy.port}\" "
     	@setup_params = "#{@setup_params} --proxy-user \"#{proxy.user}:#{proxy.password}\" " if proxy.user
     end
     
@@ -80,7 +85,26 @@ class CURL
     	@debug
     end
     
-    def get(url,count=3,ref=nil)
+    def get(url, count=3, ref=nil, keys={})
+      if @cache
+        filename = "#{@cache}/#{Digest::MD5.hexdigest(url)[0..3]}/#{Digest::MD5.hexdigest(url)}.html"
+        unless File.exists?(filename)
+          FileUtils.mkdir_p("#{@cache}/#{Digest::MD5.hexdigest(url)[0..3]}/")
+          result = get_raw(url,count,ref)
+          puts "cache to file '#{filename}'"
+          File.open(filename,"w"){|f| f.puts result}
+          return result
+        else
+          puts "read from cache file '#{filename}'"
+          return open(filename).read
+        end
+      else
+        return get_raw(url,count,ref)
+      end
+      
+    end
+    
+    def get_raw(url,count=3,ref=nil)
     	cmd = "curl #{cookies_store} #{browser_type} #{@setup_params} #{ref}  \"#{url}\"  "
     	if @debug
     		puts cmd.red  
@@ -92,7 +116,6 @@ class CURL
     			result = self.get(url,count) if count > 0
                 end
       result = result.gsub(/\\x../,'')
-#      result = Iconv.new("UTF-8", "UTF-8").iconv(result)
 
     end
     
