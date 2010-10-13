@@ -1,0 +1,6 @@
+Usage:
+
+require 'curl'
+curl = CURL.new
+page = curl.get("http://google.com")
+page.scan(/somebody/)
