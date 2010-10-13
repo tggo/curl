@@ -1,6 +1,6 @@
 spec = Gem::Specification.new do |s|
   s.name = "curl"
-  s.version = '0.0.3'
+  s.version = '0.0.4'
   s.summary = "shell CURL ruby wrapper."
   s.description = %{Some simple methods to use shell curl}
   s.files = ['README', 'lib/curl.rb']

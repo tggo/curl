@@ -1,4 +1,4 @@
-
+# encoding: utf-8
 require 'cgi'
 require "open3"
 require 'fileutils' 
