@@ -121,7 +121,7 @@ class CURL
     			count -= 1
     			result = self.get(url,count) if count > 0
                 end
-      result = result.gsub(/\\x../,'')
+      result
 
     end
     
