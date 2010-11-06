@@ -4,6 +4,7 @@ require "open3"
 require 'fileutils' 
 require 'ap' 
 require 'digest/md5'
+require 'string_cleaner'
   
 
 include Open3
@@ -32,6 +33,7 @@ class CURL
     
   def initialize(keys={})
     @cache = ( keys[:cache] ? keys[:cache] : false  )
+    @cache_time = ( keys[:cache_time] ? keys[:cache_time] : 3600*24*1  ) # 1 day cache life
     @cookies_enable = ( keys[:cookies_disable] ? false : true  )
           @user_agent     = AGENT_ALIASES["Google"]#AGENT_ALIASES[AGENT_ALIASES.keys[rand(6)]]
           FileUtils.makedirs("/tmp/curl/")
@@ -94,9 +96,9 @@ class CURL
     def get(url, count=3, ref=nil, keys={})
       if @cache
         filename = cache_file(url)
-        unless File.exists?(filename)
+        unless File.exists?(filename) && (File.exists?(filename) && File.ctime(filename) > Time.now-@cache_time)
           FileUtils.mkdir_p(cache_path(url))
-          result = get_raw(url,count,ref)
+          result = get_raw(url,count,ref) #+" --output \"#{filename}\" ")
           puts "cache to file '#{filename}'" if @debug
           File.open(filename,"w"){|f| f.puts result}
           return result
@@ -121,7 +123,7 @@ class CURL
     			count -= 1
     			result = self.get(url,count) if count > 0
                 end
-      result
+      result.clean
 
     end
     
