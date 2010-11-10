@@ -93,12 +93,16 @@ class CURL
       cache_path(url)+"/#{Digest::MD5.hexdigest(url)}.html"
     end
     
-    def get(url, count=3, ref=nil, keys={})
+    def get(url, keys={})
+      ref = keys[:ref] ||= nil
+      count = keys[:count] ||= 3
+      encoding = keys[:encoding] ||= "utf-8"
+      
       if @cache
         filename = cache_file(url)
         unless File.exists?(filename) && (File.exists?(filename) && File.ctime(filename) > Time.now-@cache_time)
           FileUtils.mkdir_p(cache_path(url))
-          result = get_raw(url,count,ref) #+" --output \"#{filename}\" ")
+          result = get_raw(url, {:count=>count, :ref=>ref, :encoding=>encoding} ) #+" --output \"#{filename}\" ")
           puts "cache to file '#{filename}'" if @debug
           File.open(filename,"w"){|f| f.puts result}
           return result
@@ -107,13 +111,17 @@ class CURL
           return open(filename).read
         end
       else
-        return get_raw(url,count,ref)
+        return get_raw(url, {:count=>count , :ref=>ref, :encoding=>encoding})
       end
       
     end
     
-    def get_raw(url,count=3,ref=nil)
-    	cmd = "curl #{cookies_store} #{browser_type} #{@setup_params} #{ref}  \"#{url}\"  "
+    def get_raw(url, keys={})
+      ref = keys[:ref] ||= nil
+      count = keys[:count] ||= 3
+      encoding = keys[:encoding] ||= "utf-8"
+      
+      cmd = "curl #{cookies_store} #{browser_type} #{@setup_params} #{ref}  \"#{url}\"  "
     	if @debug
     		puts cmd.red  
     	end
@@ -123,8 +131,8 @@ class CURL
     			count -= 1
     			result = self.get(url,count) if count > 0
                 end
-      result.clean
-
+      result.force_encoding(encoding)
+      ( encoding=="utf-8" ? result.clean : Iconv.new("UTF-8", "WINDOWS-1251").iconv(result) )
     end
     
 # 	формат данных для поста
