@@ -34,14 +34,17 @@ class CURL
   def initialize(keys={})
     @cache = ( keys[:cache] ? keys[:cache] : false  )
     @cache_time = ( keys[:cache_time] ? keys[:cache_time] : 3600*24*1  ) # 1 day cache life
+    @connect_timeout = keys[:connect_timeout] || 6
+    @max_time = keys[:max_time] || 8
+    @retry = keys[:retry] || 1
     @cookies_enable = ( keys[:cookies_disable] ? false : true  )
           @user_agent     = AGENT_ALIASES["Google"]#AGENT_ALIASES[AGENT_ALIASES.keys[rand(6)]]
           FileUtils.makedirs("/tmp/curl/")
     @cookies_file = keys[:cookies] || "/tmp/curl/curl_#{rand}_#{rand}.jar"
-		# @cookies_file	= "/home/ruslan/curl.jar"		
-		#--header "Accept-Encoding: deflate"
-		@setup_params	= ' --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" --header "Accept-Language: en-us,en;q=0.5" --header "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7" '
-		@setup_params	= ' --connect-timeout 6 --max-time 8 --retry 1  --location --compressed --silent -k  '
+    # @cookies_file	= "/home/ruslan/curl.jar"		
+    #--header "Accept-Encoding: deflate"
+#    @setup_params	= ' --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" --header "Accept-Language: en-us,en;q=0.5" --header "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7" '
+    @setup_params	= ' --connect-timeout #{@connect_timeout}  --max-time #{@max_time} --retry #{@retry}  --location --compressed --silent -k  '
 #		@setup_params	= ' --location --silent  '
 		yield self if block_given?		
 	end
