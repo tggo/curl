@@ -44,7 +44,7 @@ class CURL
     # @cookies_file	= "/home/ruslan/curl.jar"		
     #--header "Accept-Encoding: deflate"
 #    @setup_params	= ' --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" --header "Accept-Language: en-us,en;q=0.5" --header "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7" '
-    @setup_params	= ' --connect-timeout #{@connect_timeout}  --max-time #{@max_time} --retry #{@retry}  --location --compressed --silent -k  '
+    @setup_params	= " --connect-timeout #{@connect_timeout}  --max-time #{@max_time} --retry #{@retry}  --location --compressed --silent -k "
 #		@setup_params	= ' --location --silent  '
 		yield self if block_given?		
 	end
@@ -175,26 +175,28 @@ class CURL
 #			}    
     def send(url,post_data, ref = nil,count=5 )
     	
-			post_q = '' # "  -F \"method\"=\"post\"  "
-			post_data.each do |key,val|
-				pre = ""
-				if key
-						pre = "@" if key.scan("file").size>0 or key.scan("photo").size>0 
-					val = val.gsub('"','\"')
-					post_q += " -F \"#{key}\"=#{pre}\"#{val}\" " 
-				end
-			end
-			
-		cmd = "curl   #{cookies_store} #{browser_type} #{post_q}  #{@setup_params} #{ref}  \"#{url}\" "		
-		puts cmd.red if @debug
-		
-		result = open_pipe(cmd)
-    		#if result.to_s.strip.size == 0 
-    		#	puts "empty result, left #{count} try".yellow  if @debug
-    		#	count -= 1
-    		#	result = self.send(url,post_data,nil,count) if count > 0
-			#end
-    	result
+      post_q = '' # "  -F \"method\"=\"post\"  "
+      post_data.each do |key,val|
+        pre = ""
+        if key
+          key = key.to_s
+          pre = "@" if key.scan("file").size>0 or key.scan("photo").size>0 or key.scan("@").size>0
+          key.gsub!("@",'')
+          val = val.gsub('"','\"')
+          post_q += " -F \"#{key}\"=#{pre}\"#{val}\" " 
+        end
+      end
+      
+      cmd = "curl   #{cookies_store} #{browser_type} #{post_q}  #{@setup_params} #{ref}  \"#{url}\" "		
+      puts cmd.red if @debug
+      
+      result = open_pipe(cmd)
+      #if result.to_s.strip.size == 0 
+      #	puts "empty result, left #{count} try".yellow  if @debug
+      #	count -= 1
+      #	result = self.send(url,post_data,nil,count) if count > 0
+      #end
+      result
     end
     
     
