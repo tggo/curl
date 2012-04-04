@@ -5,6 +5,7 @@ require 'fileutils'
 require 'ap' 
 require 'digest/md5'
 require 'string_cleaner'
+require 'open-uri'
   
 
 include Open3
@@ -32,22 +33,23 @@ class CURL
     attr_accessor :user_agent
     
   def initialize(keys={})
+    @socks_hostname = keys[:socks_hostname] ||= false
     @cache = ( keys[:cache] ? keys[:cache] : false  )
     @cache_time = ( keys[:cache_time] ? keys[:cache_time] : 3600*24*1  ) # 1 day cache life
     @connect_timeout = keys[:connect_timeout] || 6
     @max_time = keys[:max_time] || 8
     @retry = keys[:retry] || 1
     @cookies_enable = ( keys[:cookies_disable] ? false : true  )
-          @user_agent     = AGENT_ALIASES["Google"]#AGENT_ALIASES[AGENT_ALIASES.keys[rand(6)]]
-          FileUtils.makedirs("/tmp/curl/")
+    @user_agent     = AGENT_ALIASES["Google"]
+    FileUtils.makedirs("/tmp/curl/")
     @cookies_file = keys[:cookies] || "/tmp/curl/curl_#{rand}_#{rand}.jar"
     # @cookies_file	= "/home/ruslan/curl.jar"		
     #--header "Accept-Encoding: deflate"
 #    @setup_params	= ' --header "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" --header "Accept-Language: en-us,en;q=0.5" --header "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7" '
     @setup_params	= " --connect-timeout #{@connect_timeout}  --max-time #{@max_time} --retry #{@retry}  --location --compressed --silent -k "
-#		@setup_params	= ' --location --silent  '
-		yield self if block_given?		
-	end
+    #		@setup_params	= ' --location --silent  '
+    yield self if block_given?		
+  end
 
     def user_agent_alias=(al)
       self.user_agent = AGENT_ALIASES[al] || raise("unknown agent alias")
@@ -65,10 +67,11 @@ class CURL
     end
     
     def socks(socks_uri)
-    	socks = ( socks_uri.is_a?(URI) ? socks_uri : URI.parse("http://#{socks_uri}") )
-    	@setup_params = "#{@setup_params} --socks5-hostname \"#{socks.host}:#{socks.port}\" "
-    	@setup_params = "#{@setup_params} --proxy-user \"#{socks.user}:#{socks.password}\" " if socks.user
-    	@setup_params
+      socks = ( socks_uri.is_a?(URI) ? socks_uri : URI.parse("http://#{socks_uri}") )
+      s = @socks_hostname ? "--socks5-hostname" : "--socks5"
+      @setup_params = "#{@setup_params} #{s} \"#{socks.host}:#{socks.port}\" "
+      @setup_params = "#{@setup_params} --proxy-user \"#{socks.user}:#{socks.password}\" " if socks.user
+      @setup_params
     end
     
     def self.check(proxy)
@@ -100,6 +103,7 @@ class CURL
       ref = keys[:ref] ||= nil
       count = keys[:count] ||= 3
       encoding = keys[:encoding] ||= "utf-8"
+      raw = ( keys[:raw]==nil ? false : keys[:raw] )
       
       if @cache
         filename = cache_file(url)
@@ -114,7 +118,7 @@ class CURL
           return open(filename).read
         end
       else
-        return get_raw(url, {:count=>count , :ref=>ref, :encoding=>encoding})
+        return get_raw(url, {:count=>count , :ref=>ref, :encoding=>encoding, :raw=>raw})
       end
       
     end
@@ -123,6 +127,7 @@ class CURL
       ref = keys[:ref] ||= nil
       count = keys[:count] ||= 3
       encoding = keys[:encoding] ||= "utf-8"
+      raw = ( keys[:raw]==nil ? false : keys[:raw] )
       
       cmd = "curl #{cookies_store} #{browser_type} #{@setup_params} #{ref}  \"#{url}\"  "
     	if @debug
@@ -134,8 +139,13 @@ class CURL
     			count -= 1
     			result = self.get(url,count) if count > 0
                 end
-      result.force_encoding(encoding)
-      ( encoding=="utf-8" ? result.clean : Iconv.new("UTF-8", "WINDOWS-1251").iconv(result) )
+      #      result.force_encoding(encoding)
+      if raw
+        return result
+      else
+        return ( encoding=="utf-8" ? result.clean : Iconv.new("UTF-8", "WINDOWS-1251").iconv(result) )
+      end
+        
     end
     
 # 	формат данных для поста
@@ -144,8 +154,6 @@ class CURL
 #			"country"=>"1"
 #			}    
     def post(url,post_data, ref = nil,count=5, header = " --header \"Content-Type: application/x-www-form-urlencoded\" "  )
-    	#header = " --header \"Content-Type: application/x-www-form-urlencoded\" "
-    	
 			post_q = '--data "'
 			post_data.each do |key,val|
 				if key
@@ -181,7 +189,8 @@ class CURL
         if key
           key = key.to_s
           pre = "@" if key.scan("file").size>0 or key.scan("photo").size>0 or key.scan("@").size>0
-          key.gsub!("@",'')
+          key = key.to_s.gsub("@",'')
+          val = val.to_s
           val = val.gsub('"','\"')
           post_q += " -F \"#{key}\"=#{pre}\"#{val}\" " 
         end

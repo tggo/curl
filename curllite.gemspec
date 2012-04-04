@@ -1,9 +1,9 @@
 spec = Gem::Specification.new do |s|
-  s.name = "curl"
-  s.version = '0.0.9'
+  s.name = "curllite"
+  s.version = '0.0.10'
   s.summary = "shell CURL ruby wrapper."
   s.description = %{Some simple methods to use shell curl}
-  s.files = ['README', 'lib/curl.rb', 'lib/string_cleaner.rb' ]
+  s.files = ['README', 'lib/curllite.rb', 'lib/string_cleaner.rb' ]
   s.require_path = 'lib'
   s.has_rdoc = false
   s.rdoc_options = ["--inline-source", "--charset=UTF-8"]
